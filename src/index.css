@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+/* Data Light–style theme: deep dark + green-to-cyan gradient */
+:root {
+  --bg-dark: #111818;
+  --bg-card: #151d22;
+  --accent-green: #6AFF6A;
+  --accent-cyan: #00FFFF;
+  --gradient-start: #6AFF6A;
+  --gradient-end: #00FFFF;
+  --accent-yellow: #FFC600;
+  --text-muted: #9ca3af;
+  --border-subtle: #1f2937;
+  --valid: #22c55e;
+  --tampered: #ef4444;
+  --deleted: #f97316;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-dark);
+  color: #f3f4f6;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.font-mono-hash {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+/* Gradient text (green → cyan) */
+.gradient-text {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle grid with green-cyan tint */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(rgba(106, 255, 106, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Card with glowing gradient border on hover */
+.card-glow {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(106, 255, 106, 0.15), 0 0 60px rgba(0, 255, 255, 0.08);
+}
+.card-glow:hover::before {
+  opacity: 1;
+}
+
+/* Primary gradient button */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  color: #111818;
+  border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-gradient:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(106, 255, 106, 0.4), 0 0 40px rgba(0, 255, 255, 0.2);
+  filter: brightness(1.05);
+}
+.btn-gradient:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Outline button with gradient border */
+.btn-outline-gradient {
+  background: var(--bg-card);
+  color: var(--accent-cyan);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  transition: color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-outline-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.btn-outline-gradient:hover:not(:disabled) {
+  color: var(--accent-green);
+  transform: scale(1.02);
+  box-shadow: 0 0 16px rgba(106, 255, 106, 0.25);
+}
+
+/* Glow pulse for icons / status */
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(106, 255, 106, 0.4)); }
+  50% { filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.5)); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float-dots {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progress {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(150%); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float-dots 3s ease-in-out infinite;
+}
+
+/* Staggered card entrance */
+.card-entrance {
+  animation: fadeSlide 0.4s ease-out backwards;
+}
+

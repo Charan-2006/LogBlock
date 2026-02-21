@@ -1,0 +1,7 @@
+[
+  { "message": "User login", "timestamp": "10:00 AM", "status": "valid" },
+  { "message": "Password change requested", "timestamp": "10:05 AM", "status": "valid" },
+  { "message": "File uploaded: report.pdf", "timestamp": "10:15 AM", "status": "valid" },
+  { "message": "Admin access granted", "timestamp": "10:30 AM", "status": "valid" },
+  { "message": "Logout", "timestamp": "11:00 AM", "status": "valid" }
+]
