@@ -35,7 +35,7 @@ export default function SummaryCards({ total, valid, tampered, deleted }) {
           className="rounded-2xl bg-[var(--bg-card)] card-glow shadow-xl p-5 flex items-center gap-4 card-entrance"
           style={{ animationDelay: `${i * 0.06}s` }}
         >
-          <span className="text-3xl animate-glow-pulse" style={{ filter: `drop-shadow(0 0 8px ${color}40)` }}>{icon}</span>
+          <span className="text-3xl opacity-80">{icon}</span>
           <div>
             <p className="text-[var(--text-muted)] text-sm font-medium">{label}</p>
             <p className="text-2xl font-bold tabular-nums transition-colors duration-300" style={{ color }}>

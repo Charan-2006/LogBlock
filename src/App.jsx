@@ -1,14 +1,16 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { parseLogFile } from './utils/logParser'
 import { simulateHash } from './utils/hashSimulation'
 import UploadSection from './components/UploadSection'
 import SummaryCards from './components/SummaryCards'
 import LogsTable from './components/LogsTable'
 import BlockchainStatusPanel from './components/BlockchainStatusPanel'
+import BlockchainStatusBar from './components/BlockchainStatusBar'
+import VerificationSummary from './components/VerificationSummary'
+import IntegrityOverviewCard from './components/IntegrityOverviewCard'
 import Toast from './components/Toast'
 import HashComparison from './components/HashComparison'
 import VerificationLoader from './components/VerificationLoader'
-import PieChart from './components/PieChart'
 
 const INITIAL_LOGS = []
 const STORAGE_KEYS = { logs: 'logs', hashes: 'originalHashes' }
@@ -20,7 +22,7 @@ function loadState() {
     if (logs && hashes) {
       return { logs: JSON.parse(logs), originalHashes: new Map(Object.entries(JSON.parse(hashes))) }
     }
-  } catch (_) {}
+  } catch (_) { }
   return { logs: INITIAL_LOGS, originalHashes: new Map() }
 }
 
@@ -28,7 +30,7 @@ function saveState(logs, originalHashes) {
   try {
     localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(logs))
     localStorage.setItem(STORAGE_KEYS.hashes, JSON.stringify(Object.fromEntries(originalHashes)))
-  } catch (_) {}
+  } catch (_) { }
 }
 
 export default function App() {
@@ -39,6 +41,10 @@ export default function App() {
   const [toastVisible, setToastVisible] = useState(false)
   const [hashComparison, setHashComparison] = useState(null)
   const [lastVerification, setLastVerification] = useState(null)
+  const [verificationDetails, setVerificationDetails] = useState(null)
+
+  const hasData = logs.length > 0
+  const isVerified = lastVerification !== null
 
   const handleUpload = useCallback((text, _filename) => {
     const parsed = parseLogFile(text, _filename)
@@ -48,6 +54,8 @@ export default function App() {
     })
     setLogs(parsed)
     setOriginalHashes(hashes)
+    setLastVerification(null)
+    setVerificationDetails(null)
     saveState(parsed, hashes)
   }, [])
 
@@ -70,11 +78,13 @@ export default function App() {
   const verifyIntegrity = useCallback(() => {
     setIsVerifying(true)
     setToastVisible(false)
-    // Simulate network delay
+
+    // Simulate network delay and blockchain anchoring
     setTimeout(() => {
       let hasTampered = false
       let resultCounts = { valid: 0, tampered: 0, deleted: 0 }
       const storedHashes = new Map(originalHashes)
+
       setLogs((prev) => {
         const next = prev.map((log) => {
           if (log.status === 'deleted') {
@@ -93,6 +103,7 @@ export default function App() {
           }
           return { ...log, status: 'valid' }
         })
+
         resultCounts = {
           valid: next.filter((l) => l.status === 'valid').length,
           tampered: next.filter((l) => l.status === 'tampered').length,
@@ -101,39 +112,93 @@ export default function App() {
         saveState(next, originalHashes)
         return next
       })
+
       if (hasTampered) {
         setToastMessage('⚠ Log integrity compromised')
         setToastVisible(true)
       }
+
       setLastVerification(resultCounts)
+      setVerificationDetails({
+        time: new Date().toLocaleTimeString(),
+        block: 124500 + Math.floor(Math.random() * 100),
+        tx: `0x${Math.random().toString(16).slice(2, 64)}`
+      })
       setIsVerifying(false)
-    }, 1800)
+    }, 1500)
   }, [originalHashes])
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: logs.length,
     valid: logs.filter((l) => l.status === 'valid').length,
     tampered: logs.filter((l) => l.status === 'tampered').length,
     deleted: logs.filter((l) => l.status === 'deleted').length,
-  }
+  }), [logs])
 
-  const downloadReport = useCallback(() => {
-    const lines = [
-      'Blockchain Log Verification Report',
-      new Date().toISOString(),
-      '---',
-      `Total: ${stats.total}, Valid: ${stats.valid}, Tampered: ${stats.tampered}, Deleted: ${stats.deleted}`,
-      '---',
-      ...logs.map((l) => `[${l.id}] ${l.status.toUpperCase()} | ${l.timestamp} | ${l.message}`),
+  const downloadPDFReport = useCallback(() => {
+    const { jsPDF } = window.jspdf
+    const doc = new jsPDF()
+
+    // Header
+    doc.setFillColor(17, 24, 24)
+    doc.rect(0, 0, 210, 40, 'F')
+    doc.setTextColor(106, 255, 106)
+    doc.setFontSize(22)
+    doc.text('Immutable Log Integrity Report', 15, 25)
+
+    doc.setTextColor(150, 150, 150)
+    doc.setFontSize(10)
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 15, 33)
+
+    // Section 1: System Info
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(14)
+    doc.text('Section 1 — System Info', 15, 50)
+    doc.setFontSize(10)
+    const systemInfo = [
+      ['Network', 'Hardhat Local'],
+      ['Contract Address', '0x742d35Cc6634C0532925a3b844Bc9e7595f8bC1e'],
+      ['Block Number', verificationDetails ? `#${verificationDetails.block}` : 'N/A'],
+      ['Last Transaction', verificationDetails ? verificationDetails.tx.slice(0, 20) + '...' : 'N/A'],
+      ['Anchoring Status', 'Confirmed']
     ]
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `verification-report-${Date.now()}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
-  }, [logs, stats])
+    doc.autoTable({
+      head: [['Parameter', 'Status']],
+      body: systemInfo,
+      startY: 55,
+      theme: 'striped',
+      headStyles: { fillColor: [21, 29, 34] }
+    })
+
+    // Section 2: Summary
+    doc.text('Section 2 — Integrity Summary', 15, doc.lastAutoTable.finalY + 15)
+    const score = stats.total === 0 ? 100 : Math.round((stats.valid / stats.total) * 100)
+    const summary = [
+      ['Total Logs', stats.total],
+      ['Valid Logs', stats.valid],
+      ['Tampered Logs', stats.tampered],
+      ['Deleted Logs', stats.deleted],
+      ['Integrity Score', `${score}%`],
+      ['Verification Time', verificationDetails?.time || 'N/A']
+    ]
+    doc.autoTable({
+      body: summary,
+      startY: doc.lastAutoTable.finalY + 20,
+      theme: 'grid'
+    })
+
+    // Section 3: Log Table
+    doc.text('Section 3 — Log Details', 15, doc.lastAutoTable.finalY + 15)
+    const logData = logs.map(l => [l.id, l.message, l.timestamp, l.status.toUpperCase()])
+    doc.autoTable({
+      head: [['ID', 'Message', 'Timestamp', 'Status']],
+      body: logData,
+      startY: doc.lastAutoTable.finalY + 20,
+      styles: { fontSize: 8 }
+    })
+
+    doc.save(`log-integrity-report-${Date.now()}.pdf`)
+  }, [logs, stats, verificationDetails])
 
   const showHashComparison = useCallback((log) => {
     const original = originalHashes.get(log.id)
@@ -146,107 +211,134 @@ export default function App() {
     setOriginalHashes(new Map())
     setToastVisible(false)
     setLastVerification(null)
+    setVerificationDetails(null)
     try {
       localStorage.removeItem(STORAGE_KEYS.logs)
       localStorage.removeItem(STORAGE_KEYS.hashes)
-    } catch (_) {}
+    } catch (_) { }
   }, [])
 
   const dismissVerificationResult = useCallback(() => setLastVerification(null), [])
 
   return (
-    <div className="min-h-screen bg-grid-pattern">
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        <header className="sticky top-0 z-20 -mx-4 px-4 py-4 -mt-4 mb-2 flex flex-wrap items-center justify-between gap-4 animate-[fadeSlide_0.5s_ease-out] bg-[var(--bg-dark)]/95 backdrop-blur-sm border-b border-[var(--border-subtle)]/50">
-          <h1 className="text-2xl font-bold tracking-tight gradient-text">
-            ⛓ Blockchain-Based Immutable Log Storage
-          </h1>
+    <div className="min-h-screen bg-grid-pattern flex flex-col">
+      <header className="sticky top-0 z-30 w-full bg-[var(--bg-dark)]/95 backdrop-blur-md border-b border-[var(--border-subtle)]/50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={downloadReport}
-              disabled={logs.length === 0}
-              className="px-3 py-1.5 rounded-xl btn-outline-gradient text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              📥 Download Report
-            </button>
+            <h1 className="text-xl font-bold tracking-tight gradient-text">
+              ⛓ LogBlock
+            </h1>
+            <div className="h-6 w-px bg-[var(--border-subtle)]" />
+            <span className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-widest hidden sm:inline">
+              Immutable Storage
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {hasData && (
+              <>
+                <UploadSection onUpload={handleUpload} disabled={isVerifying} />
+                <button
+                  type="button"
+                  onClick={verifyIntegrity}
+                  disabled={isVerifying}
+                  className="px-5 py-2 rounded-xl btn-gradient text-sm font-bold shadow-[0_0_15px_rgba(106,255,106,0.3)] transition-300"
+                >
+                  Verify Integrity
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadPDFReport}
+                  className="p-2.5 rounded-xl btn-icon-secondary"
+                  title="Download PDF Report"
+                >
+                  📥
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={clearData}
-              className="px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--tampered)] hover:border-[var(--tampered)]/50 text-sm transition-all duration-200"
-              title="Clear all logs and stored data (hides toast)"
+              className="p-2.5 rounded-xl btn-icon-secondary btn-destructive"
+              title="Clear Data"
             >
-              🗑 Clear data
+              🗑
             </button>
           </div>
-        </header>
+        </div>
+        <BlockchainStatusBar />
+      </header>
 
-        {/* Flow hint: guides user without changing layout */}
-        <nav className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-sm text-[var(--text-muted)]" aria-label="Workflow">
-          <span className="flex items-center gap-1.5">
-            <span className="w-6 h-6 rounded-full bg-[var(--accent-cyan)]/20 text-[var(--accent-cyan)] flex items-center justify-center text-xs font-bold">1</span>
-            Upload
-          </span>
-          <span className="opacity-50">→</span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-6 h-6 rounded-full bg-[var(--accent-cyan)]/20 text-[var(--accent-cyan)] flex items-center justify-center text-xs font-bold">2</span>
-            Review / Edit
-          </span>
-          <span className="opacity-50">→</span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-6 h-6 rounded-full bg-[var(--accent-cyan)]/20 text-[var(--accent-cyan)] flex items-center justify-center text-xs font-bold">3</span>
-            Verify
-          </span>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 space-y-8 overflow-hidden">
+        {/* Stepper Logic Component */}
+        <nav className="flex items-center justify-center gap-8 mb-4" aria-label="Workflow Progress">
+          {[
+            { id: 1, label: 'Upload', status: hasData ? 'done' : 'active' },
+            { id: 2, label: 'Review', status: hasData ? (isVerified ? 'done' : 'active') : 'todo' },
+            { id: 3, label: 'Verify', status: isVerified ? 'done' : 'todo' },
+          ].map((step, idx) => (
+            <div key={step.id} className="flex items-center gap-2">
+              <div className={`
+                w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300
+                ${step.status === 'done' ? 'bg-[var(--valid)] text-[var(--bg-dark)]' :
+                  step.status === 'active' ? 'bg-[var(--accent-cyan)] text-[var(--bg-dark)] shadow-sm' :
+                    'bg-white/5 text-[var(--text-muted)] border border-white/10'}
+              `}>
+                {step.status === 'done' ? '✔' : step.id}
+              </div>
+              <span className={`text-xs font-bold uppercase tracking-wider ${step.status === 'todo' ? 'text-[var(--text-muted)]' : 'text-white'}`}>
+                {step.label}
+              </span>
+              {idx < 2 && <div className="w-6 h-px bg-[var(--border-subtle)] sm:w-10 opacity-50" />}
+            </div>
+          ))}
         </nav>
 
-        <UploadSection onUpload={handleUpload} disabled={isVerifying} />
+        {!hasData ? (
+          <div className="flex flex-col items-center justify-center min-h-[55vh] animate-fade-in-up">
+            <UploadSection onUpload={handleUpload} disabled={isVerifying} isLarge={true} />
+          </div>
+        ) : (
+          <div className="space-y-8 animate-fade-in transition-300">
+            <SummaryCards {...stats} />
 
-        <SummaryCards {...stats} />
-
-        {lastVerification && (
-          <section className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-3 flex flex-wrap items-center justify-between gap-3 animate-[fadeSlide_0.3s_ease-out]">
-            <span className="text-sm text-[var(--text-muted)]">Last verification:</span>
-            <span className="flex flex-wrap items-center gap-4 text-sm">
-              <span style={{ color: 'var(--valid)' }}>✓ {lastVerification.valid} valid</span>
-              <span style={{ color: 'var(--tampered)' }}>✗ {lastVerification.tampered} tampered</span>
-              <span style={{ color: 'var(--deleted)' }}>⚠ {lastVerification.deleted} deleted</span>
-            </span>
-            <button type="button" onClick={dismissVerificationResult} className="text-[var(--text-muted)] hover:text-white text-xs transition-colors">Dismiss</button>
-          </section>
-        )}
-
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <h2 className="text-lg font-semibold gradient-text">Logs</h2>
-              <button
-                type="button"
-                onClick={verifyIntegrity}
-                disabled={logs.length === 0 || isVerifying}
-                className="px-5 py-2.5 rounded-xl btn-gradient font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Verify Integrity
-              </button>
-            </div>
-            <LogsTable
-              logs={logs}
-              originalHashes={originalHashes}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onShowHashComparison={showHashComparison}
-              isVerifying={isVerifying}
-              emptyMessage={logs.length === 0 ? 'Upload a log file above to get started. Use .txt (line-by-line) or .json.' : null}
+            <VerificationSummary
+              result={lastVerification}
+              details={verificationDetails}
+              onDismiss={dismissVerificationResult}
             />
+
+            <div className="dashboard-grid">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                    📄 System Logs
+                    <span className="text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-[var(--text-muted)] uppercase tracking-tighter">
+                      {logs.length} Total Records
+                    </span>
+                  </h2>
+                </div>
+                <LogsTable
+                  logs={logs}
+                  originalHashes={originalHashes}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onShowHashComparison={showHashComparison}
+                  isVerifying={isVerifying}
+                />
+              </div>
+
+              <div className="space-y-6">
+                <BlockchainStatusPanel />
+                <IntegrityOverviewCard
+                  {...stats}
+                  lastVerifiedTime={verificationDetails?.time}
+                />
+              </div>
+            </div>
           </div>
-          <div className="lg:w-80 shrink-0 space-y-6">
-            <BlockchainStatusPanel />
-            <section className="rounded-2xl bg-[var(--bg-card)] card-glow shadow-xl p-6">
-              <h2 className="text-lg font-semibold gradient-text mb-3">Log distribution</h2>
-              <PieChart valid={stats.valid} tampered={stats.tampered} deleted={stats.deleted} />
-            </section>
-          </div>
-        </div>
-      </div>
+        )}
+      </main>
 
       {isVerifying && <VerificationLoader />}
       <Toast
@@ -262,7 +354,6 @@ export default function App() {
           onClose={() => setHashComparison(null)}
         />
       )}
-
     </div>
   )
 }

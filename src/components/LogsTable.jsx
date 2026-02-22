@@ -112,8 +112,12 @@ export default function LogsTable({ logs, originalHashes, onEdit, onDelete, onSh
                   <td className="px-4 py-3 text-[var(--text-muted)]">{log.timestamp}</td>
                   <td className="px-4 py-3">
                     <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-sm font-medium transition-all duration-300"
-                      style={{ color: statusConfig[log.status]?.color ?? 'inherit', backgroundColor: `${statusConfig[log.status]?.color ?? '#333'}22` }}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                      style={{
+                        color: statusConfig[log.status]?.color ?? 'inherit',
+                        backgroundColor: `${statusConfig[log.status]?.color ?? '#333'}15`,
+                        border: `1px solid ${statusConfig[log.status]?.color ?? '#333'}30`
+                      }}
                     >
                       {statusConfig[log.status]?.icon ?? '•'} {statusConfig[log.status]?.label ?? log.status}
                     </span>
