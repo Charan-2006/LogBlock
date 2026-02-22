@@ -1,16 +1,41 @@
-# React + Vite
+# ⛓ LogBlock
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Blockchain-Based Immutable Log Storage & Integrity Monitoring**
 
-Currently, two official plugins are available:
+LogBlock is a professional SOC-grade utility designed for secure, immutable log ingestion and forensic integrity verification. By leveraging blockchain technology (simulated), it ensures that your system logs remain tamper-proof and verifiable.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## React Compiler
+- **Immutable Storage**: Logs are anchored to a (simulated) blockchain for permanent, verifiable records.
+- **Integrity Monitoring**: Real-time detection of tampered or deleted logs using cryptographic hashing.
+- **SOC Dashboard**: A high-end, professional interface designed for Security Operations Centers.
+- **Detailed Reporting**: Generate comprehensive PDF reports with system info, integrity scores, and full log tables.
+- **Automated Workflow**: Streamlined `Upload → Review → Verify` pipeline.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠 Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend**: React, Vite, Tailwind CSS
+- **Integrity**: MD5/SHA-256 (Simulated local hashing)
+- **Reports**: jsPDF, AutoTable
+- **Blockchain**: Simulated Ethereum/Hardhat anchoring
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 📦 Getting Started
+
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for Production**:
+   ```bash
+   npm run build
+   ```
+
+## 🔒 Security Focus
+
+This project prioritizes visual clarity and forensic integrity, providing a clean, professional aesthetic that reduces "neon" noise and emphasizes actionable security data.
