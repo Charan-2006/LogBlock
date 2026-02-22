@@ -39,3 +39,14 @@ LogBlock is a professional SOC-grade utility designed for secure, immutable log 
 ## 🔒 Security Focus
 
 This project prioritizes visual clarity and forensic integrity, providing a clean, professional aesthetic that reduces "neon" noise and emphasizes actionable security data.
+
+## 👥 Team
+
+- **Charan Annamalai A**
+- **Pradeep**
+- **Jashwant**
+- **Sree Hari**
+- **Maanickavasagam**
+
+---
+© 2026 LogBlock Project
